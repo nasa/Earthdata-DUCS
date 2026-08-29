@@ -1,0 +1,35 @@
+# Run `pre-commit install` once to enable, and `pre-commit autoupdate`
+# periodically to refresh the pinned revisions below.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+      # Repo contains a ~4 MB GIF; keep the ceiling above it but well under
+      # GitHub's 100 MiB hard limit.
+      - id: check-added-large-files
+        args: [--maxkb=5000]
+      # Guard against committing credentials (EDL, cloud keys).
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        # Skip generated output and binary assets.
+        args: ["--skip=*.gif,*.pdf,*.ipynb,*.html"]

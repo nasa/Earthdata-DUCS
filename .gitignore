@@ -1,0 +1,62 @@
+# --- Secrets / credentials (never commit) ---
+.env
+.env.*
+!.env.example
+.netrc
+*.netrc
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.python-version
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# --- R ---
+.Rhistory
+.Rapp.history
+.RData
+.Rproj.user/
+*.Rproj
+.Renviron
+.Rprofile.user
+
+# --- Generated documentation output ---
+docs/pdf/
+
+# Quarto / pandoc render artifacts (keep the .md source, not the rendered output)
+.quarto/
+*_files/
+/docs/*.html
+
+# --- Editors / OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
