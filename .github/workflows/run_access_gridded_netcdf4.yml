@@ -1,0 +1,45 @@
+# Runs the access_gridded_netcdf4 python script in a Github Workflows environment 
+#
+# 9/11/2026 JRS with ChatGSFC
+# Uses the gridded_netcdf4.yml environment
+
+name: Run MERRA-2 Data Script
+
+# This determines when the script runs. 
+# workflow_dispatch allows you to manually trigger it from the GitHub Actions tab.
+on:
+  workflow_dispatch: 
+  # Uncomment the lines below if you want it to run every time you push to main
+  # push:
+  #   branches:
+  #     - main
+
+jobs:
+  run-data-script:
+    runs-on: ubuntu-latest
+    
+    # We must explicitly tell GitHub to use the Conda shell
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Conda Environment
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: gridded_netcdf4
+          environment-file: gridded_netcdf4.yml
+          auto-activate-base: false
+          miniforge-version: latest
+
+      - name: Run MERRA-2 Python Script
+        # We pass the Earthdata credentials as environment variables 
+        # so earthaccess.login() can find them automatically.
+        env:
+          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+        run: |
+          python access_gridded_netcdf4.py
