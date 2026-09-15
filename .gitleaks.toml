@@ -20,6 +20,13 @@
 [extend]
 useDefault = true
 
+# `gitleaks dir`, which CI uses, walks the tree with no built-in exclusions, so
+# it would otherwise descend into .git/ and scan packed objects. That is wasted
+# work, and a hit inside a compressed blob is near-impossible to act on.
+[[allowlists]]
+description = "Git internals are not source"
+paths = ['''(^|/)\.git/''']
+
 [[rules]]
 id = "nasa-edl-credential-assignment"
 description = "NASA Earthdata Login credential assigned to a variable"
