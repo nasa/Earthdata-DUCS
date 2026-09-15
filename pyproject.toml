@@ -1,0 +1,30 @@
+[project]
+name = "ducs"
+version = "0.0.0"
+description = "Pipeline that generates and execution-validates Data Use Code Snippets (DUCS) for NASA Earthdata datasets"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+# Tooling only. Versions of tools that enforce style (ruff, codespell,
+# actionlint, zizmor, gitleaks) are pinned by `rev:` in .pre-commit-config.yaml,
+# so that CI and a developer's local hooks stay aligned.
+dev = ["pre-commit>=4.2"]
+
+[tool.ruff]
+# Config lives here rather than in a ruff.toml.
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings
+  "F",  # pyflakes
+  "I",  # import sorting
+  "UP", # pyupgrade
+  "B",  # flake8-bugbear
+]
+# The formatter owns line length.
+ignore = ["E501"]
