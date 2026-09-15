@@ -77,7 +77,7 @@ def safe(d, *keys, default=None):
     return cur
 
 
-def pick_collection(rng) -> "earthaccess.results.DataCollection":
+def pick_collection(rng) -> earthaccess.results.DataCollection:
     """Randomly pick one cloud-hosted collection, spread across providers."""
     providers = rng.sample(CLOUD_PROVIDERS, len(CLOUD_PROVIDERS))
     for prov in providers:
@@ -89,9 +89,7 @@ def pick_collection(rng) -> "earthaccess.results.DataCollection":
 
 
 def derive_format(umm) -> str:
-    fmt = safe(
-        umm, "ArchiveAndDistributionInformation", "FileArchiveInformation", 0, "Format"
-    )
+    fmt = safe(umm, "ArchiveAndDistributionInformation", "FileArchiveInformation", 0, "Format")
     return (fmt or "").strip()
 
 
@@ -138,8 +136,7 @@ def build_snippet(meta: dict) -> str:
     lib = meta["library"]
     import_line = IMPORTS.get(lib, "")
     open_recipe = meta["open_recipe"] or (
-        f'# No format->library rule for {meta["format"]!r}; open manually.\n'
-        f'    print(files[0])'
+        f"# No format->library rule for {meta['format']!r}; open manually.\n    print(files[0])"
     )
     w, s, e, n = meta["bbox"]
     return textwrap.dedent(f'''\
@@ -176,9 +173,7 @@ def build_snippet(meta: dict) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument(
-        "--seed", type=int, default=None, help="seed RNG for a reproducible pick"
-    )
+    ap.add_argument("--seed", type=int, default=None, help="seed RNG for a reproducible pick")
     args = ap.parse_args()
     rng = random.Random(args.seed)
 

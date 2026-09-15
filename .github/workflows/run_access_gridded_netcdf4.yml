@@ -14,6 +14,11 @@ on:
   #   branches:
   #     - main
 
+# Least privilege: this job only reads the repo. Earthdata credentials arrive
+# through secrets, not through the job token.
+permissions:
+  contents: read
+
 jobs:
   run-data-script:
     runs-on: ubuntu-latest
@@ -24,14 +29,20 @@ jobs:
         shell: bash -l {0}
 
     steps:
+      # Actions are pinned to a commit SHA, not a tag: a tag can be moved to
+      # point at different code. Dependabot keeps the SHA and the trailing
+      # version comment current (see .github/dependabot.yml).
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Don't leave the job's token in .git/config for later steps to reach.
+          persist-credentials: false
 
       - name: Set up Conda Environment
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           activate-environment: gridded_netcdf4
-          environment-file: gridded_netcdf4.yml
+          environment-file: envs/gridded_netcdf4.yml
           auto-activate-base: false
           miniforge-version: latest
 
