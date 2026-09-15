@@ -3,7 +3,8 @@
 # `pre-commit autoupdate` runs should rarely be necessary.
 #
 # CI runs this same file via `pre-commit run --all-files`, so local hooks and CI
-# stay aligned. See .github/workflows/ci.yml.
+# stay aligned. The one exception is gitleaks, which CI runs directly for the
+# reason noted at that hook. See .github/workflows/ci.yml.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -55,7 +56,12 @@ repos:
 
   # Content-shaped secrets in the staged diff. This hook is staged-only: its
   # `--staged` flag is baked into the hook definition and cannot be overridden
-  # from here, so CI skips it and runs a full-history scan instead.
+  # from here, so CI skips it and scans the checked-out tree instead.
+  #
+  # This is the control that actually prevents a leak. The repository is public,
+  # so once a commit is pushed the secret is public and CI can only report it.
+  # Worth bumping ci.yml's pinned image to match when Dependabot moves this rev,
+  # though a release of lag costs nothing but a slightly older ruleset.
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
     hooks:

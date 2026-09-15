@@ -34,8 +34,8 @@ updates:
         patterns: ["*"]
 
   # Hook revisions in .pre-commit-config.yaml. This is why the repo needs no
-  # scheduled `pre-commit autoupdate` job and no third-party app (pre-commit.ci
-  # would need NASA org-owner approval to install).
+  # scheduled `pre-commit autoupdate` job and no third-party app (pre-commit.ci:
+  # un-disableable weekly autoupdate with no cooldown would race that entry).
   - package-ecosystem: pre-commit
     directory: /
     schedule:

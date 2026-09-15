@@ -25,7 +25,7 @@ Two jobs, both secret-free so they work on pull requests from forks:
 | Job | What it does |
 |---|---|
 | `lint & workflow audit` | Every pre-commit hook: `ruff` lint and format, `codespell`, YAML/TOML/JSON validity, `actionlint`, and the `zizmor` security audit |
-| `secret scan` | `gitleaks` over full git history |
+| `secret scan` | `gitleaks` over the checked-out tree |
 
 Credentials are checked two independent ways, because they leak two different
 ways: `gitleaks` looks at file *contents*, and a `pre-commit` rule rejects
@@ -35,8 +35,20 @@ deliberate `git add -f`.
 
 Earthdata Login credentials belong in a local `~/.netrc`, or in GitHub Actions
 secrets for workflows. Never in the repository — note that GitHub's free
-secret scanning does **not** detect EDL username/password pairs, so the hooks
-here are the only thing standing between a mistake and a public commit.
+secret scanning does **not** detect EDL username/password pairs, so the checks
+here are the only thing that would ever notice one.
+
+### Install the hooks — CI cannot save you here
+
+`pre-commit install` is the control that matters. This is a public repository, so
+a secret is public the moment it is pushed; the `secret scan` job runs *after*
+that and can only tell you it happened. Only the local hook runs early enough to
+stop it.
+
+**If CI ever reports a credential, assume it is compromised.** Rotate it first —
+in Earthdata Login, or wherever it came from — and only then worry about
+history. A force-push does not un-leak anything: forks, clones, and the GitHub
+events API may already have it.
 
 ## Writing a workflow
 

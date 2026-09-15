@@ -16,15 +16,17 @@ on:
 permissions:
   contents: read
 
-# Supersede in-flight runs for the same ref.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Supersede in-flight runs for the same ref, except on main: that run is the
+  # recorded result for a commit that is already merged, so let it finish.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   checks:
     name: lint & workflow audit
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,44 +45,54 @@ jobs:
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: pre-commit-
 
+      # --locked matters here: plain `uv run` would quietly re-lock a uv.lock
+      # that had drifted from pyproject.toml, and CI would pass on a lockfile
+      # nobody committed.
       - name: Run all hooks
         env:
-          # The gitleaks hook scans the *staged* diff, and that flag is baked
-          # into its hook definition rather than passed as an argument. In CI
-          # there is no staged diff, so it would scan nothing while still paying
-          # for a from-source Go build. The `secrets` job below does the real
-          # scan, over full history.
+          # The gitleaks hook only ever scans the *staged* diff -- that flag is
+          # baked into its hook definition rather than passed as an argument --
+          # and nothing is staged in CI. The `secrets` job scans instead.
           SKIP: gitleaks
-        run: uv run --group dev pre-commit run --all-files --show-diff-on-failure
+        run: uv run --locked --group dev pre-commit run --all-files --show-diff-on-failure
 
+  # This job cannot prevent a leak. The repository is public, so a pushed secret
+  # is already public before the job starts, and `pre-commit install` is the only
+  # control that runs early enough to stop one. This is the backstop for whoever
+  # never installed the hooks, or used `git commit --no-verify`.
+  #
+  # It earns its place because it is the only detection that exists: per
+  # .gitleaks.toml, GitHub's own secret scanning cannot see Earthdata Login
+  # credentials. Treat anything it reports as already compromised -- rotate the
+  # credential first, worry about history second.
   secrets:
     name: secret scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # gitleaks walks every commit, so it needs more than a shallow clone.
-          fetch-depth: 0
           persist-credentials: false
 
-      # The official gitleaks-action requires a GITLEAKS_LICENSE for repos owned
-      # by an organization, even public ones, and is not open-source licensed.
-      # The CLI is MIT and needs no key, so install it directly and verify the
-      # download against a published checksum.
-      - name: Install gitleaks
-        env:
-          GITLEAKS_VERSION: 8.30.1
-          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
-        run: |
-          curl -sSfL -o gitleaks.tar.gz \
-            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
-          tar -xzf gitleaks.tar.gz gitleaks
-          ./gitleaks version
-
-      # --redact keeps any finding out of the public log; the exit code and file
+      # `dir` scans the checked-out tree rather than git history, which is what
+      # keeps this to a single command: no full clone, no commit-range
+      # arithmetic. It still flags a secret on the pull request that introduces
+      # it, and unlike a history scan it cannot wedge the repo -- that would fail
+      # every unrelated PR once one secret landed, even after the credential was
+      # rotated, until someone rewrote history or added a .gitleaksignore.
+      #
+      # The version is duplicated from .pre-commit-config.yaml, deliberately:
+      # Dependabot cannot reach a tag inside a `run:` block, and if this lags the
+      # hook by a release the only cost is a slightly older ruleset. The official
+      # gitleaks-action is not used because it demands a GITLEAKS_LICENSE for
+      # org-owned repos, even public ones, and is not open-source licensed.
+      #
+      # --redact keeps findings out of the public log: the exit code and file
       # location are what a contributor needs, not the secret itself. --config is
-      # explicit rather than relying on auto-discovery, so this cannot silently
-      # fall back to the default ruleset and drop the Earthdata Login rules.
-      - name: Scan full git history
-        run: ./gitleaks git --no-banner --redact --verbose --config .gitleaks.toml .
+      # explicit so this cannot silently fall back to the default ruleset and
+      # drop the Earthdata Login rules.
+      - name: Scan the checkout for secrets
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" -w /repo \
+            ghcr.io/gitleaks/gitleaks:v8.30.1 \
+            dir --no-banner --redact --verbose --config .gitleaks.toml .
