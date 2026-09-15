@@ -1,0 +1,13 @@
+name: gridded_netcdf4
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10
+  - earthaccess
+  - xarray
+  - dask
+  - h5netcdf
+  - netcdf4
+  - bottleneck
+  - pip
