@@ -14,11 +14,11 @@ prior examples to an LLM, then executes-and-validates in Docker. Here we:
 
 Run:  python prototype/strawman_ducs.py [--seed N]
 """
+
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import random
 import sys
 import textwrap
@@ -29,23 +29,34 @@ import earthaccess
 # A spread of cloud-hosted DAAC providers so we sample across the archive
 # instead of always taking the first-N-by-relevance from one query.
 CLOUD_PROVIDERS = [
-    "GES_DISC", "LPCLOUD", "POCLOUD", "NSIDC_CPRD", "ORNL_CLOUD",
-    "ASF", "LARC_CLOUD", "OB_DAAC", "GHRC_DAAC", "SEDAC",
+    "GES_DISC",
+    "LPCLOUD",
+    "POCLOUD",
+    "NSIDC_CPRD",
+    "ORNL_CLOUD",
+    "ASF",
+    "LARC_CLOUD",
+    "OB_DAAC",
+    "GHRC_DAAC",
+    "SEDAC",
 ]
 
 # Straw-man format -> (library, open-recipe) lookup. The real pipeline grows
 # this into lookup/ with per-level/per-format rules.
 FORMAT_LUT = [
-    (("netcdf", "hdf5", "hdf-eos5", "he5"), "xarray",
-     'ds = xr.open_dataset(files[0])'),
-    (("hdf4", "hdf-eos", "hdf-eos2", "hdf"), "xarray",
-     'ds = xr.open_dataset(files[0], engine="netcdf4")  # needs libnetcdf built with HDF4'),
-    (("geotiff", "cog", "tiff", "tif"), "rioxarray",
-     'ds = rxr.open_rasterio(files[0])'),
-    (("zarr",), "xarray",
-     'ds = xr.open_dataset(files[0], engine="zarr")'),
-    (("csv", "ascii", "text", "txt"), "pandas",
-     'df = pd.read_csv(files[0])'),
+    (("netcdf", "hdf5", "hdf-eos5", "he5"), "xarray", "ds = xr.open_dataset(files[0])"),
+    (
+        ("hdf4", "hdf-eos", "hdf-eos2", "hdf"),
+        "xarray",
+        'ds = xr.open_dataset(files[0], engine="netcdf4")  # needs libnetcdf built with HDF4',
+    ),
+    (
+        ("geotiff", "cog", "tiff", "tif"),
+        "rioxarray",
+        "ds = rxr.open_rasterio(files[0])",
+    ),
+    (("zarr",), "xarray", 'ds = xr.open_dataset(files[0], engine="zarr")'),
+    (("csv", "ascii", "text", "txt"), "pandas", "df = pd.read_csv(files[0])"),
 ]
 
 IMPORTS = {
@@ -70,9 +81,7 @@ def pick_collection(rng) -> "earthaccess.results.DataCollection":
     """Randomly pick one cloud-hosted collection, spread across providers."""
     providers = rng.sample(CLOUD_PROVIDERS, len(CLOUD_PROVIDERS))
     for prov in providers:
-        cols = earthaccess.search_datasets(
-            cloud_hosted=True, provider=prov, count=80
-        )
+        cols = earthaccess.search_datasets(cloud_hosted=True, provider=prov, count=80)
         if cols:
             return rng.choice(cols)
     # Fallback: broad cloud-hosted query.
@@ -80,8 +89,9 @@ def pick_collection(rng) -> "earthaccess.results.DataCollection":
 
 
 def derive_format(umm) -> str:
-    fmt = safe(umm, "ArchiveAndDistributionInformation",
-               "FileArchiveInformation", 0, "Format")
+    fmt = safe(
+        umm, "ArchiveAndDistributionInformation", "FileArchiveInformation", 0, "Format"
+    )
     return (fmt or "").strip()
 
 
@@ -94,19 +104,34 @@ def choose_library(fmt: str, sample_url: str):
 
 
 def bbox_from(umm):
-    br = safe(umm, "SpatialExtent", "HorizontalSpatialDomain", "Geometry",
-             "BoundingRectangles", 0)
+    br = safe(
+        umm,
+        "SpatialExtent",
+        "HorizontalSpatialDomain",
+        "Geometry",
+        "BoundingRectangles",
+        0,
+    )
     if not br:
         return (-180, -90, 180, 90)
-    return (br.get("WestBoundingCoordinate", -180),
-            br.get("SouthBoundingCoordinate", -90),
-            br.get("EastBoundingCoordinate", 180),
-            br.get("NorthBoundingCoordinate", 90))
+    return (
+        br.get("WestBoundingCoordinate", -180),
+        br.get("SouthBoundingCoordinate", -90),
+        br.get("EastBoundingCoordinate", 180),
+        br.get("NorthBoundingCoordinate", 90),
+    )
 
 
 def start_date(umm) -> str:
-    return safe(umm, "TemporalExtents", 0, "RangeDateTimes", 0,
-                "BeginningDateTime", default="2020-01-01T00:00:00Z")[:10]
+    return safe(
+        umm,
+        "TemporalExtents",
+        0,
+        "RangeDateTimes",
+        0,
+        "BeginningDateTime",
+        default="2020-01-01T00:00:00Z",
+    )[:10]
 
 
 def build_snippet(meta: dict) -> str:
@@ -151,8 +176,9 @@ def build_snippet(meta: dict) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--seed", type=int, default=None,
-                    help="seed RNG for a reproducible pick")
+    ap.add_argument(
+        "--seed", type=int, default=None, help="seed RNG for a reproducible pick"
+    )
     args = ap.parse_args()
     rng = random.Random(args.seed)
 
@@ -198,8 +224,17 @@ def main() -> int:
     }
 
     print("\n=== Picked collection ===")
-    for k in ("short_name", "version", "concept_id", "provider", "level",
-              "format", "library", "doi", "n_granules"):
+    for k in (
+        "short_name",
+        "version",
+        "concept_id",
+        "provider",
+        "level",
+        "format",
+        "library",
+        "doi",
+        "n_granules",
+    ):
         print(f"  {k:12}: {meta[k]}")
     print(f"  sample_url  : {sample_url}")
 
@@ -213,9 +248,12 @@ def main() -> int:
     print(f"\n=== Generated snippet ({stem}.py) ===\n")
     print(snippet)
     print(f"Wrote {out_dir / (stem + '.py')}")
-    print("\nStraw-man validation:",
-          "PASS (granule found + snippet emitted)" if grans
-          else "WARN (no granule found for this collection)")
+    print(
+        "\nStraw-man validation:",
+        "PASS (granule found + snippet emitted)"
+        if grans
+        else "WARN (no granule found for this collection)",
+    )
     return 0
 
 

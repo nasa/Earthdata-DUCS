@@ -16,15 +16,15 @@ print("Authenticated with Earthdata Login credentials")
 # Data search using earthaccess
 print("Searching for granules with earthaccess...")
 results = earthaccess.search_data(
-    short_name = shortname,
-    version = version,
-    temporal = ('2025-07-01', '2025-07-01'),
-    bounding_box = (-99.85886, 29.78140, -98.91769, 30.29064)
+    short_name=shortname,
+    version=version,
+    temporal=("2025-07-01", "2025-07-01"),
+    bounding_box=(-99.85886, 29.78140, -98.91769, 30.29064),
 )
 
 # Data access
-fs = earthaccess.open(results) # Extracts URLs from the results variable
-ds = xr.open_mfdataset(fs) # Open granules in xarray
+fs = earthaccess.open(results)  # Extracts URLs from the results variable
+ds = xr.open_mfdataset(fs)  # Open granules in xarray
 print("Opened L3/L4 NetCDF4 dataset in xarray")
 
 # File structure navigation
@@ -40,6 +40,6 @@ print("\n--- Coordinates ---")
 print(list(ds.coords.keys()))
 
 # Example: Accessing a specific variable's structure (e.g., Air Temperature 'T' or Specific Humidity 'QV')
-if 'T' in ds.data_vars:
+if "T" in ds.data_vars:
     print("\n--- Structure of Temperature (T) ---")
-    print(ds['T'])
+    print(ds["T"])
