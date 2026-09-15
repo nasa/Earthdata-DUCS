@@ -1,0 +1,51 @@
+# gitleaks configuration.
+#
+# Measured rather than assumed: with the default ruleset alone, gitleaks detected
+# NONE of seven realistic Earthdata Login passwords (`Nasa2026!`,
+# `Tr0ub4dor&3`, `Summer2026Kestrel`, ...). With the rules below it detects all
+# seven.
+#
+# The reason is structural, not a tuning gap. The only default rule that could
+# apply, `generic-api-key`, is built for machine-generated API tokens: it needs a
+# long, high-entropy string. A 21-character random token trips it; a human-chosen
+# password of 9-17 characters does not. Earthdata Login credentials are human
+# passwords, so the default ruleset is simply the wrong shape of tool for them.
+#
+# GitHub's own secret scanning does not cover this either. On a free public repo
+# only recognized partner patterns are scanned; generic username/password
+# patterns and AI-detected passwords both require paid Secret Protection, and
+# Earthdata Login is not a partner pattern. These rules are the only control in
+# the repository that can see an EDL credential.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "nasa-edl-credential-assignment"
+description = "NASA Earthdata Login credential assigned to a variable"
+regex = '''(?i)\b(?:EARTHDATA|EDL|URS)_(?:PASSWORD|PASSWD|PASS|TOKEN|SECRET)\s*[:=]\s*['"]?([^\s'"#,)]{3,})'''
+secretGroup = 1
+tags = ["nasa", "earthdata-login", "credential"]
+
+  [rules.allowlist]
+  # Placeholders, template expressions, and env-var indirection are how these
+  # names are *supposed* to appear. `${{ secrets.EARTHDATA_PASSWORD }}` in a
+  # workflow and `os.environ["EARTHDATA_PASSWORD"]` in code must not trip this.
+  regexTarget = "match"
+  regexes = [
+    '''(?i)(fake|example|sample|dummy|placeholder|changeme|redacted|your[-_ ]?pass|xxx|\*\*\*|<[^>]*>)''',
+    '''\$\{|\$\(|%\(|\{\{|os\.environ|getenv|secrets\.''',
+  ]
+
+[[rules]]
+id = "nasa-edl-netrc-password"
+description = "netrc-style Earthdata Login password"
+regex = '''(?i)machine\s+\S*urs\.earthdata\.nasa\.gov[\s\S]{0,200}?\bpassword\s+(\S+)'''
+secretGroup = 1
+tags = ["nasa", "earthdata-login", "netrc"]
+
+  [rules.allowlist]
+  regexTarget = "match"
+  regexes = [
+    '''(?i)(fake|example|sample|dummy|placeholder|changeme|redacted|your[-_ ]?pass|xxx|\*\*\*|<[^>]*>)''',
+  ]

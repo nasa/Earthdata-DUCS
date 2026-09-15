@@ -1,0 +1,70 @@
+# Automated dependency updates (DUCS-12).
+#
+# Updates are grouped so each ecosystem opens one PR per week rather than one per
+# dependency. This is the same reasoning as batching pipeline commits: GitHub
+# applies a 500/hour secondary limit to content creation, and a repo that opens
+# dozens of PRs a week trains everyone to ignore them.
+#
+# Times use an odd minute deliberately. Everybody's default is :00, which piles
+# every scheduled job in the world onto the same instant.
+#
+# `cooldown` holds back releases younger than a week. When a package is
+# compromised, the malicious version is typically pulled within days — a cooldown
+# means the repo never adopts it. This matters more than usual here: DUCS ships
+# code that users are told to trust and run.
+version: 2
+updates:
+  # Keeps the SHA pins in .github/workflows/ current. Dependabot rewrites both
+  # the SHA and the trailing `# vX.Y.Z` comment, which is what makes pinning by
+  # digest maintainable rather than a chore nobody does.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "06:43"
+      timezone: Etc/UTC
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # Hook revisions in .pre-commit-config.yaml. This is why the repo needs no
+  # scheduled `pre-commit autoupdate` job and no third-party app (pre-commit.ci
+  # would need NASA org-owner approval to install).
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "06:47"
+      timezone: Etc/UTC
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      pre-commit:
+        patterns: ["*"]
+
+  # Python tooling declared in pyproject.toml / uv.lock.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "06:51"
+      timezone: Etc/UTC
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      python:
+        patterns: ["*"]

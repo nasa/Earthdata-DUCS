@@ -7,6 +7,20 @@
 *.pem
 *.key
 
+# --- Internal / non-public material (never commit) ---
+# Directories named below are local-only scratch space.
+internal/
+_local/
+scratch/
+
+# Received / authored office document formats.
+*.doc
+*.docx
+*.ppt
+*.pptx
+*.xls
+*.xlsx
+
 # --- Python ---
 __pycache__/
 *.py[cod]

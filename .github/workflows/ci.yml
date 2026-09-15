@@ -1,0 +1,86 @@
+# Developer-facing checks on pull requests and pushes to main.
+#
+# Scope: this workflow keeps the *pipeline codebase* healthy. It is NOT
+# the DUCS generate/validate pipeline and NOT scheduled re-validation.
+# Those will be separate workflows with different triggers.
+#
+# Intentionally secret-free, so it should run fine on pull requests from forks.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege.
+permissions:
+  contents: read
+
+# Supersede in-flight runs for the same ref.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: lint & workflow audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Don't leave the job's token in .git/config for later steps to reach.
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+
+      # Hook environments are the slow part, not the checks themselves. Keyed on
+      # the config so a Dependabot rev bump correctly invalidates the cache.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: pre-commit-
+
+      - name: Run all hooks
+        env:
+          # The gitleaks hook scans the *staged* diff, and that flag is baked
+          # into its hook definition rather than passed as an argument. In CI
+          # there is no staged diff, so it would scan nothing while still paying
+          # for a from-source Go build. The `secrets` job below does the real
+          # scan, over full history.
+          SKIP: gitleaks
+        run: uv run --group dev pre-commit run --all-files --show-diff-on-failure
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # gitleaks walks every commit, so it needs more than a shallow clone.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The official gitleaks-action requires a GITLEAKS_LICENSE for repos owned
+      # by an organization, even public ones, and is not open-source licensed.
+      # The CLI is MIT and needs no key, so install it directly and verify the
+      # download against a published checksum.
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -sSfL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks version
+
+      # --redact keeps any finding out of the public log; the exit code and file
+      # location are what a contributor needs, not the secret itself. --config is
+      # explicit rather than relying on auto-discovery, so this cannot silently
+      # fall back to the default ruleset and drop the Earthdata Login rules.
+      - name: Scan full git history
+        run: ./gitleaks git --no-banner --redact --verbose --config .gitleaks.toml .

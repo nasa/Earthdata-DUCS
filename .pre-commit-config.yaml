@@ -1,8 +1,12 @@
-# Run `pre-commit install` once to enable, and `pre-commit autoupdate`
-# periodically to refresh the pinned revisions below.
+# Run `pre-commit install` once to enable. Revisions below are kept current by
+# Dependabot's `pre-commit` ecosystem (see .github/dependabot.yml), so manual
+# `pre-commit autoupdate` runs should rarely be necessary.
+#
+# CI runs this same file via `pre-commit run --all-files`, so local hooks and CI
+# stay aligned. See .github/workflows/ci.yml.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
@@ -13,23 +17,60 @@ repos:
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: mixed-line-ending
-      # Repo contains a ~4 MB GIF; keep the ceiling above it but well under
-      # GitHub's 100 MiB hard limit.
       - id: check-added-large-files
-        args: [--maxkb=5000]
-      # Guard against committing credentials (EDL, cloud keys).
+        args: [--maxkb=1024]
+      # Catches PEM-format keys only. Broader credential detection is gitleaks,
+      # below; filename-shaped credentials are the local hook at the bottom.
       - id: detect-private-key
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4
+    rev: v0.16.7
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.3.0
+    rev: v2.4.3
     hooks:
       - id: codespell
-        # Skip generated output and binary assets.
-        args: ["--skip=*.gif,*.pdf,*.ipynb,*.html"]
+        args: ["--skip=*.gif,*.pdf,*.ipynb,*.html,uv.lock"]
+
+  # --- GitHub Actions: correctness, then security -------------------------- #
+
+  # Workflow syntax, expression validity, and shellcheck over `run:` blocks.
+  # Note it does NOT verify that paths referenced by a workflow actually exist.
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+
+  # Security audit.
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.30.1
+    hooks:
+      - id: zizmor
+
+  # --- Credentials --------------------------------------------------------- #
+
+  # Content-shaped secrets in the staged diff. This hook is staged-only: its
+  # `--staged` flag is baked into the hook definition and cannot be overridden
+  # from here, so CI skips it and runs a full-history scan instead.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      # Name-shaped credentials. .gitignore already lists these patterns, but
+      # .gitignore stops accidents, not `git add -f`.
+      - id: forbid-credential-filenames
+        name: forbid credential-shaped filenames
+        language: fail
+        entry: >-
+          Refusing to commit a credential-shaped file. Earthdata Login and cloud
+          credentials belong in a local ~/.netrc or in GitHub Actions secrets,
+          never in the repository.
+        files: '(^|/)(\.netrc|_netrc|\.env)$|(^|/)\.env\..*$|\.(pem|key|p12|pfx|keystore|jks)$'
+        exclude: '(^|/)\.env\.example$'
