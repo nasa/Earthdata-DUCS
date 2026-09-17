@@ -74,3 +74,6 @@ Thumbs.db
 .idea/
 *.swp
 *~
+
+# --- Data files ---
+/data/earthdata_collections.csv
