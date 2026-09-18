@@ -24,9 +24,9 @@ print(f"Total granules found: {len(results)}")
 
 # Data access
 fs = earthaccess.open(results)  # Extracts URLs from the results variable
-# Open the first granule with xarray datatree 
+# Open the first granule with xarray datatree
 # since SPL3SMP_E has hierarchical groupings
-dt = xr.open_datatree(fs[0])  
+dt = xr.open_datatree(fs[0])
 print("Opened L3 dataset in xarray")
 
 # File structure navigation
@@ -35,9 +35,6 @@ print(dt)
 # Example: Accessing a specific variable's structure (e.g., soil moisture for the AM pass)
 print("\n--- Soil Moisture Data Structure AM ---")
 ds_am = dt.Soil_Moisture_Retrieval_Data_AM
-# Assign coordinates 
-ds_am = ds_am.assign_coords(
-    lat=ds_am.latitude,
-    lon=ds_am.longitude
-)
+# Assign coordinates
+ds_am = ds_am.assign_coords(lat=ds_am.latitude, lon=ds_am.longitude)
 print(ds_am.soil_moisture)
