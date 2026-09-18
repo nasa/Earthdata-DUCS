@@ -1,0 +1,70 @@
+# Runs and validates the access_profile_hdf4 python snippet in a GitHub Workflows environment
+#
+# 9/18/2026 JRS with ChatGSFC
+# Dependencies come from the PEP 723 inline metadata block in the script itself,
+# so there is no environment file to keep in sync.
+
+name: Run CALIPSO Lidar L1B Data Script
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  run-data-script:
+    runs-on: ubuntu-latest
+    # Timeout is generous to allow for downloads of the data files.
+    timeout-minutes: 30
+
+    steps:
+      # Actions are pinned to a commit SHA, not a tag: a tag can be moved to
+      # point at different code. Dependabot keeps the SHA and the trailing
+      # version comment current (see .github/dependabot.yml).
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Don't leave the job's token in .git/config for later steps to reach.
+          persist-credentials: false
+
+      # Fail fast and legibly. Without this, earthaccess falls through to its
+      # interactive prompt and the job hangs until the timeout above.
+      - name: Verify Earthdata Credentials Are Configured
+        env:
+          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+        run: |
+          if [ -z "$EARTHDATA_USERNAME" ] || [ -z "$EARTHDATA_PASSWORD" ]; then
+            echo "::error::EARTHDATA_USERNAME / EARTHDATA_PASSWORD secrets are not set."
+            exit 1
+          fi
+
+      # OPTIONAL -- only needed if pyhdf has no wheel for this runner.
+      # Try the workflow with this commented out first; uncomment if the uv run
+      # step fails with a compiler/build error during dependency resolution.
+      # - name: Install HDF4 System Library
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y libhdf4-dev
+
+      - name: Set Up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+          # No lockfile for a PEP 723 script, so key the cache on the file that
+          # declares the dependencies.
+          cache-dependency-glob: "validate_access_profile_hdf4.py"
+
+      - name: Run and Validate CALIPSO Snippet
+        # earthaccess reads these automatically when no .netrc is present.
+        env:
+          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+        # The validator runs the snippet via runpy, so this executes both.
+        # uv downloads Python 3.12 per requires-python; no setup-python needed.
+        run: uv run --script validate_access_profile_hdf4.py
