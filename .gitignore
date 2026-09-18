@@ -21,6 +21,13 @@ scratch/
 *.xls
 *.xlsx
 
+# --- Downloaded granules (fetched at runtime, never committed) ---
+data/
+*.hdf
+*.he5
+*.nc
+*.nc4
+
 # --- Python ---
 __pycache__/
 *.py[cod]
