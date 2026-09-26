@@ -53,4 +53,4 @@ jobs:
           EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
           EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
         run: |
-          python access_gridded_netcdf4.py
+          python prototype/access_gridded_netcdf4.py

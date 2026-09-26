@@ -81,3 +81,6 @@ Thumbs.db
 .idea/
 *.swp
 *~
+
+# --- Generated prototype snippets and metadata ---
+/prototype/out/

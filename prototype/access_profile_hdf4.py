@@ -12,8 +12,8 @@
 # Note: this dataset is distributed in HDF4. HDF4 files cannot be streamed, so Step 3 downloads
 # the granule instead of opening it in place, and Step 4 uses pyhdf instead of xarray.
 #
-# Run:  uv run access_profile_hdf4.py
-#   or: pip install "earthaccess>=0.15" "pyhdf==0.11.7" "numpy>=2" && python access_profile_hdf4.py
+# Run:  uv run prototype/access_profile_hdf4.py
+#   or: pip install "earthaccess>=0.15" "pyhdf==0.11.7" "numpy>=2" && python prototype/access_profile_hdf4.py
 
 # ----------------------------------------------
 # Step 0: Environment Setup (Import Packages) |
