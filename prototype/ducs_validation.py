@@ -7,8 +7,8 @@ change on reprocessing and turn into false CI failures.
 
 Contract: every DUCS snippet assigns the array it read to a variable named `data`.
 
-Run validators from the repository root; snippet paths are resolved relative to the
-current working directory.
+Snippet paths may be absolute or relative to the current working directory.
+Validator entry points resolve their sibling snippets relative to their own files.
 """
 
 import runpy

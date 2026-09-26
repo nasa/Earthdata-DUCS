@@ -58,7 +58,7 @@ jobs:
           enable-cache: true
           # No lockfile for a PEP 723 script, so key the cache on the file that
           # declares the dependencies.
-          cache-dependency-glob: "validate_access_profile_hdf4.py"
+          cache-dependency-glob: "prototype/validate_access_profile_hdf4.py"
 
       - name: Run and Validate CALIPSO Snippet
         # earthaccess reads these automatically when no .netrc is present.
@@ -67,4 +67,4 @@ jobs:
           EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
         # The validator runs the snippet via runpy, so this executes both.
         # uv downloads Python 3.12 per requires-python; no setup-python needed.
-        run: uv run --script validate_access_profile_hdf4.py
+        run: uv run --script prototype/validate_access_profile_hdf4.py

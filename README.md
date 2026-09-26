@@ -38,6 +38,29 @@ Alongside code generation, DUCS treats "does this code actually run?" as a core 
 Re-validation runs on a schedule, so snippets that break due to upstream changes
 are caught rather than degrading without notice.
 
+## Prototypes
+
+The `prototype/` directory contains the experimental access snippets, their
+validation helpers, and the straw-man generator. Environment definitions remain
+in `envs/`; the corresponding manual workflows are in `.github/workflows/`.
+
+From the repository root, run the CALIPSO example or its validation entry point:
+
+```bash
+uv run --script prototype/access_profile_hdf4.py
+uv run --script prototype/validate_access_profile_hdf4.py
+```
+
+The validator locates its sibling snippet independently of the working directory.
+The MERRA-2 workflow uses `prototype/access_gridded_netcdf4.py` with
+`envs/gridded_netcdf4.yml`. The generator can be run with
+`python prototype/strawman_ducs.py --seed 1`; its output goes to the ignored
+`prototype/out/` directory.
+
+These scripts access Earthdata and require the dependencies and credentials
+described in each script or environment file. Do not commit credentials or
+downloaded granules.
+
 ## Contributing
 
 The project is in its setup phase; contribution guidelines are still being
