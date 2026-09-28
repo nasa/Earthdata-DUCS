@@ -1,11 +1,10 @@
 # Access GeoTIFF data (script)
 #
 # 9/21/2026 RS
-# Performs the four DUCS workflow steps for the ECO_L1CT_RAD collection, which are level-1 data stored in cloud optimized GeoTIFF data 
+# Performs the four DUCS workflow steps for the ECO_L1CT_RAD collection, which are level-1 data stored in cloud optimized GeoTIFF data
 
 import earthaccess
 import rioxarray as rxr
-
 
 # EDL auth using earthaccess
 auth = earthaccess.login()
@@ -16,7 +15,7 @@ print("Searching for granules with earthaccess...")
 results = earthaccess.search_data(
     doi="10.5067/ECOSTRESS/ECO_L1CT_RAD.003",
     temporal=("2026-07-10", "2026-07-13"),
-    bounding_box= (-122.09684570249401,39.89193960036616,-122.03465069273044,39.92326328372664)
+    bounding_box=(-122.09684570249401, 39.89193960036616, -122.03465069273044, 39.92326328372664),
 )
 print(f"Total granules found: {len(results)}")
 
@@ -24,5 +23,5 @@ print(f"Total granules found: {len(results)}")
 fs = earthaccess.open(results)  # Extracts URLs from the results variable
 
 # Open the first granule with rioxarray open_rasterio
-dt = rxr.open_rasterio(fs[0], masked=True).squeeze('band', drop=True)
+dt = rxr.open_rasterio(fs[0], masked=True).squeeze("band", drop=True)
 print(dt)
