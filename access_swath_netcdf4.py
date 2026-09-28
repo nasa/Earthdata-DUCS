@@ -11,13 +11,12 @@
 import earthaccess
 import xarray as xr
 
-
 # For VJ102IMG.021 the geolocation data is also required to work with the data
 # Define Search Parameters for both VJ102IMG.021 Radiance and VJ103IMG.021 Geolocation
 doi = "10.5067/VIIRS/VJ102IMG.021"
 geo_doi = "10.5067/VIIRS/VJ103IMG.021"
 # Temporal Range
-temporal = ('2026-09-06T20:00:00', '2026-09-07T21:00:00')
+temporal = ("2026-09-06T20:00:00", "2026-09-07T21:00:00")
 # Bounding Box (LL Lon, LL Lat, UR Lon, UR Lat)
 bounding_box = (-116.43, 32.67, -114.96, 34.02)
 
@@ -28,19 +27,21 @@ print("Authenticated with Earthdata Login credentials")
 # Data search using earthaccess
 print(f"Searching for {doi} radiance granules with earthaccess...")
 results = earthaccess.search_data(
-    doi = doi,
-    temporal = temporal,
-    bounding_box = bounding_box,
+    doi=doi,
+    temporal=temporal,
+    bounding_box=bounding_box,
 )
 
 print(f"Searching for matching {geo_doi} geolocation granules with earthaccess...")
 geo_results = earthaccess.search_data(
-    doi = geo_doi,
-    temporal = temporal,
-    bounding_box = bounding_box,
+    doi=geo_doi,
+    temporal=temporal,
+    bounding_box=bounding_box,
 )
-print(f"{doi} Radiance granules found: {len(results)} \n"
-    f"{geo_doi} Geolocation granules found: {len(geo_results)}")
+print(
+    f"{doi} Radiance granules found: {len(results)} \n"
+    f"{geo_doi} Geolocation granules found: {len(geo_results)}"
+)
 
 rad_fs = earthaccess.open(results)
 geo_fs = earthaccess.open(geo_results)
