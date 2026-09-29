@@ -39,6 +39,12 @@ print(f"Spatiotemporal search retrieved {len(granules)} granule(s)")
 ## Dataset Structure Navigation
 -
 
+## Validation (external to snippet)
+
+- snippet runs to completion
+- snippet produces real numbers (stored in a variable named `data`)
+  - numeric check is performed on unmasked/unfiltered data (to avoid depending on any science thresholds or analytic manipulations)
+
 # Out of scope:
 
 - Visualization or plotting
