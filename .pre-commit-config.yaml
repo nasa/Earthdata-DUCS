@@ -19,7 +19,7 @@ repos:
       - id: check-case-conflict
       - id: mixed-line-ending
       - id: check-added-large-files
-        args: [--maxkb=1024]
+        args: [--maxkb=2048]
       # Catches PEM-format keys only. Broader credential detection is gitleaks,
       # below; filename-shaped credentials are the local hook at the bottom.
       - id: detect-private-key
