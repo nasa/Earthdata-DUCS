@@ -1,4 +1,6 @@
-# Import required packages (pip install earthaccess xarray h5netcdf)
+# Import required packages (pip install earthaccess xarray h5netcdf h5py)
+# Note: h5py is listed separately because it is an optional extra for h5netcdf.
+#       Without it, xr.open_datatree below fails with "backend not available"
 import earthaccess  # search and access NASA Earthdata
 import xarray as xr  # load and analyze N-dimensional array data
 
@@ -27,20 +29,18 @@ dt = xr.open_datatree(files[0], engine="h5netcdf", phony_dims="access")  # open 
 print(dt)
 
 # Subset variables
-photons = dt["gt1l/heights"].ds[
-    ["h_ph", "lat_ph", "lon_ph", "signal_conf_ph"]
-]  # photon height, lat, lon, and confidence flag from one beam
+# photon height, lat, lon, and confidence flag from one beam
+photons = dt["gt1l/heights"].ds[["h_ph", "lat_ph", "lon_ph", "signal_conf_ph"]]
 
 # Mean height of signal photons
-conf = photons[
-    "signal_conf_ph"
-].isel(
-    {photons["signal_conf_ph"].dims[1]: 0}
-)  # pick the land column (0) from the per-surface-type confidence scores, giving one score per photon
-mean_height = (
-    photons["h_ph"].where(conf >= 3).mean().item()
-)  # mean height of medium/high-confidence photons (conf >= 3)
+# pick the land column (0) from the per-surface-type confidence scores,
+# giving one score per photon
+conf = photons["signal_conf_ph"].isel({photons["signal_conf_ph"].dims[1]: 0})
 
-print(
-    f"Mean signal photon height along this beam: {mean_height:.1f} m"
-)  # covers the full beam track in the granule, not just the bounding box
+# The array read from the granule
+data = photons["h_ph"]
+# mean height of medium/high-confidence photons (conf >= 3)
+mean_height = data.where(conf >= 3).mean().item()
+
+# covers the full beam track in the granule, not just the bounding box
+print(f"Mean signal photon height along this beam: {mean_height:.1f} m")

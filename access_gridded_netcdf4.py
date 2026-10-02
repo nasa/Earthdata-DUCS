@@ -24,7 +24,9 @@ results = earthaccess.search_data(
 
 # Data access
 fs = earthaccess.open(results)  # Extracts URLs from the results variable
-ds = xr.open_mfdataset(fs)  # Open granules in xarray
+ds = xr.open_mfdataset(fs, engine="h5netcdf")  # Open granules in xarray
+# Note: engine is explicit so the backend does not depend on which libraries happen to be
+#       installed -- h5netcdf is the one that can read the file-like objects earthaccess returns
 print("Opened L3/L4 NetCDF4 dataset in xarray")
 
 # File structure navigation
@@ -40,6 +42,12 @@ print("\n--- Coordinates ---")
 print(list(ds.coords.keys()))
 
 # Example: Accessing a specific variable's structure (e.g., Air Temperature 'T' or Specific Humidity 'QV')
-if "T" in ds.data_vars:
-    print("\n--- Structure of Temperature (T) ---")
-    print(ds["T"])
+print("\n--- Structure of Temperature (T) ---")
+temperature = ds["T"]
+print(temperature)
+
+# The array read from the granule.
+# Note: the bounding_box above filters which *granules* match -- it does not subset them, so
+#       MERRA-2 granules are still the full global grid (8 x 42 x 361 x 576, ~279 MB). One
+#       time step and one level is a real read of the data without pulling the whole variable.
+data = temperature.isel(time=0, lev=0)

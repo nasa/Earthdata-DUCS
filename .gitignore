@@ -24,9 +24,13 @@ scratch/
 # --- Downloaded granules (fetched at runtime, never committed) ---
 data/
 *.hdf
+*.hdf5
+*.h5
 *.he5
 *.nc
 *.nc4
+*.tif
+*.tiff
 
 # --- Python ---
 __pycache__/

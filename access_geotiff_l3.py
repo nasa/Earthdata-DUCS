@@ -23,5 +23,6 @@ print(f"Total granules found: {len(results)}")
 fs = earthaccess.open(results)  # Extracts URLs from the results variable
 
 # Open the first granule with rioxarray open_rasterio
-dt = rxr.open_rasterio(fs[0], masked=True).squeeze("band", drop=True)
-print(dt)
+# The array read from the granule (masked=True turns the fill value into "not a number")
+data = rxr.open_rasterio(fs[0], masked=True).squeeze("band", drop=True)
+print(data)

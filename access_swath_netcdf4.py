@@ -68,4 +68,6 @@ da = da.assign_coords(
     longitude=geo_dt["geolocation_data"]["longitude"],
 )
 
-print(da)
+# The array read from the granule
+data = da
+print(data)
