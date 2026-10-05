@@ -1,0 +1,172 @@
+# Runs and validates DUCS snippets against real granules.
+#
+# Dependencies currently come from each validator script's inline metadata,
+# so there is no environment file to keep in sync.
+
+name: Run DUCS Snippets
+
+# workflow_dispatch only for now.
+on:
+  workflow_dispatch:
+    inputs:
+      snippet:
+        # A string rather than a `choice`, so it doesn't have to be edited every time a
+        # snippet is added. The `select` job still validates the value and fails on a typo.
+        description: Validator filename to run, or "all"
+        type: string
+        default: all
+      dry_run:
+        # Can test the workflow without downloading any data.
+        description: Stop after listing what would run
+        type: boolean
+        default: false
+
+# Least privilege. Earthdata credentials arrive through secrets, not the job token.
+permissions:
+  contents: read
+
+# A single shared group stops two whole sweeps from overlapping, while
+# max-parallel (below) throttles within one sweep.
+#
+# cancel-in-progress: false because a half-finished granule read is not a result worth keeping.
+# The consequence is that GitHub holds at most one *pending* run per group, so a manual dispatch
+# can displace a queued scheduled sweep.
+concurrency:
+  group: ducs-snippet-validate
+  cancel-in-progress: false
+
+jobs:
+  # Discovery and prep as one job, so a misconfiguration is one failure rather
+  # than N identical red X's in the CI matrix.
+  select:
+    name: discover validators
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      validators: ${{ steps.discover.outputs.validators }}
+      has_edl: ${{ steps.edl.outputs.has_edl }}
+    steps:
+      # Actions are pinned to a commit SHA, not a tag: a tag can be moved to point at different
+      # code. Dependabot keeps the SHA and the trailing version comment current.
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Don't leave the job's token in .git/config for later steps to reach.
+          persist-credentials: false
+
+      # Secrets cannot be read in a job-level `if:`, so surface presence -- never the value --
+      # as an output for the validate job to gate on.
+      - name: Check Earthdata Credentials Are Configured
+        id: edl
+        env:
+          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+        run: |
+          if [ -n "$EARTHDATA_USERNAME" ] && [ -n "$EARTHDATA_PASSWORD" ]; then
+            echo "has_edl=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_edl=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Validation SKIPPED"
+              echo
+              echo "\`EARTHDATA_USERNAME\` / \`EARTHDATA_PASSWORD\` are not set for this repository."
+              echo "Without them every matrix job would fail identically on configuration, "
+              echo "so the matrix is skipped instead."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # A quoted heredoc (<<'PY') keeps the body literal, so actionlint's shellcheck pass does
+      # not lint it -- and, more to the point, this avoids `ls | jq`, whose SC2012 is not in
+      # actionlint's exclusion list and would fail CI. Note the failure would be CI-only:
+      # shellcheck ships on ubuntu-latest but is not installed by the pre-commit hook, so a
+      # local `pre-commit run --all-files` would have passed it.
+      - name: Discover Validators
+        id: discover
+        env:
+          WANT: ${{ inputs.snippet }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, pathlib, sys
+
+          # Empty rather than "all" when triggered by anything other than workflow_dispatch:
+          # input defaults are not applied on a `schedule` trigger.
+          want = os.environ.get("WANT") or "all"
+          found = sorted(p.name for p in pathlib.Path().glob("validate_access_*.py"))
+          if not found:
+              sys.exit("::error::no validate_access_*.py found in the repository root")
+          picked = found if want == "all" else [f for f in found if f == want]
+          if not picked:
+              sys.exit(f"::error::{want!r} matched nothing. Available: {', '.join(found)}")
+          print(f"validators={json.dumps(picked)}")
+          PY
+
+      - name: Report What Would Run
+        env:
+          VALIDATORS: ${{ steps.discover.outputs.validators }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          {
+            echo "### Validators selected"
+            echo
+            printf '%s' "$VALIDATORS" | python3 -c 'import json,sys; [print(f"- `{v}`") for v in json.load(sys.stdin)]'
+            echo
+            echo "Dry run: \`${DRY_RUN:-false}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  validate:
+    name: ${{ matrix.validator }}
+    needs: select
+    # Skip rather than fail when credentials are absent, and stop here on a dry run.
+    if: needs.select.outputs.has_edl == 'true' && !inputs.dry_run
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      # One broken snippet won't hide the status of the others.
+      fail-fast: false
+      # The throttle. See the concurrency note at the top.
+      max-parallel: 3
+      matrix:
+        validator: ${{ fromJson(needs.select.outputs.validators) }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set Up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+          # Explicit, and not redundant with the validators' `requires-python = ">=3.12"`: that
+          # constraint is equally satisfied by 3.13 and 3.14, and uv selects the newest
+          # interpreter it can find.
+          python-version: "3.12"
+          # Keyed on this validator alone, so one snippet's dependency change does not bust the
+          # cache for the others. No lockfile exists for a PEP 723 script, so the file that
+          # declares the dependencies is the key.
+          cache-dependency-glob: ${{ matrix.validator }}
+
+      - name: Run and Validate Snippet
+        env:
+          # earthaccess reads these automatically when no .netrc is present.
+          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+          VALIDATOR: ${{ matrix.validator }}
+        # The validator runs the snippet via runpy, so this executes both.
+        run: uv run --script "$VALIDATOR"
+
+      # Dependabot cannot read PEP 723 metadata, so a sweep is the only mechanism that
+      # detects upstream drift, and that is only useful if a red run says *which* version moved.
+      - name: Record Resolved Versions On Failure
+        if: failure()
+        env:
+          VALIDATOR: ${{ matrix.validator }}
+        run: |
+          {
+            echo "### \`$VALIDATOR\` failed — resolved dependencies"
+            echo
+            echo '```'
+            uv export --script "$VALIDATOR" 2>&1 || echo "(uv export failed)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
