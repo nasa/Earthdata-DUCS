@@ -80,12 +80,18 @@ jobs:
       # actionlint's exclusion list and would fail CI. Note the failure would be CI-only:
       # shellcheck ships on ubuntu-latest but is not installed by the pre-commit hook, so a
       # local `pre-commit run --all-files` would have passed it.
+      #
+      # Both the job output and the run summary are written from inside Python, rather than by
+      # redirecting the heredoc and piping to a second interpreter. That keeps every shell
+      # metacharacter -- backticks especially -- inside the unexpanded heredoc body, where
+      # shellcheck treats it as data.
       - name: Discover Validators
         id: discover
         env:
           WANT: ${{ inputs.snippet }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          python3 - <<'PY'
           import json, os, pathlib, sys
 
           # Empty rather than "all" when triggered by anything other than workflow_dispatch:
@@ -97,21 +103,15 @@ jobs:
           picked = found if want == "all" else [f for f in found if f == want]
           if not picked:
               sys.exit(f"::error::{want!r} matched nothing. Available: {', '.join(found)}")
-          print(f"validators={json.dumps(picked)}")
-          PY
 
-      - name: Report What Would Run
-        env:
-          VALIDATORS: ${{ steps.discover.outputs.validators }}
-          DRY_RUN: ${{ inputs.dry_run }}
-        run: |
-          {
-            echo "### Validators selected"
-            echo
-            printf '%s' "$VALIDATORS" | python3 -c 'import json,sys; [print(f"- `{v}`") for v in json.load(sys.stdin)]'
-            echo
-            echo "Dry run: \`${DRY_RUN:-false}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"validators={json.dumps(picked)}\n")
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh:
+              fh.write("### Validators selected\n\n")
+              fh.writelines(f"- `{v}`\n" for v in picked)
+              fh.write(f"\nDry run: `{os.environ.get('DRY_RUN') or 'false'}`\n")
+          PY
 
   validate:
     name: ${{ matrix.validator }}
