@@ -88,3 +88,4 @@ Thumbs.db
 
 # --- Data files ---
 /data/earthdata_collections.csv
+/output/

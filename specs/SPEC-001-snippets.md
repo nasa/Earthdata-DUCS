@@ -48,3 +48,12 @@ print(f"Spatiotemporal search retrieved {len(granules)} granule(s)")
 # Out of scope:
 
 - Visualization or plotting
+<<<<<<< HEAD
+=======
+
+# CRITICAL INSTRUCTIONS:
+- Return ONLY valid, executable Python code.
+- DO NOT wrap the code in markdown tags (do not use ``` or ```python).
+- DO NOT include any conversational text, preambles, or explanations.
+- Your entire output will be piped directly into a .py file and executed.
+>>>>>>> 7b80c51 (added snippet generation pipeline.py)
