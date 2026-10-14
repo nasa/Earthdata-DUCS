@@ -50,4 +50,12 @@ Paste the snippet into a file or a Jupyter notebook cell within the activated en
 ## Troubleshooting
 
 - **`ModuleNotFoundError`**: the environment isn't activated, or a package from the snippet's list wasn't installed. Run `conda activate ducs` and re-check the list.
-- **Login prompt doesn't appear / 401 errors**: check your username and password at <https://urs.earthdata.nasa.gov>, and confirm you have accepted the EULA for the dataset.
+- **Login prompt doesn't appear / 401 errors**: check your username and password at <https://urs.earthdata.nasa.gov>, and confirm you have accepted the EULA for the dataset. If those are correct, the password saved in `~/.netrc` may be outdated (see below).
+- **Incorrect or outdated password (401 errors, but no login prompt)**: `earthaccess` reuses whatever is saved in `~/.netrc`, so it never asks again, even after you change your Earthdata password. To fix it, re-enter your credentials from Python. With the environment activated, run:
+
+  ```python
+  import earthaccess
+  earthaccess.login(strategy="interactive", persist=True)
+  ```
+
+  This prompts for your username and password, checks them with Earthdata Login, and replaces the `urs.earthdata.nasa.gov` entry in your `.netrc`. Nothing is saved if the login fails, so re-run it if you mistype.
