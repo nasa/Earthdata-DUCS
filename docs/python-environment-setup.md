@@ -55,6 +55,7 @@ Paste the snippet into a file or a Jupyter notebook cell within the activated en
 
   ```python
   import earthaccess
+
   earthaccess.login(strategy="interactive", persist=True)
   ```
 
