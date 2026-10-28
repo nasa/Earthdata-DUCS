@@ -1,4 +1,4 @@
-# Authentication in Python (Generic earthaccess Login)
+# STEP 1: Authentication
 
 Every snippet begins with the same first step: authenticating with **NASA Earthdata Login (EDL)**. This step is identical for all collections and uses [`earthaccess`](https://earthaccess.readthedocs.io/) to handle credentials.
 
