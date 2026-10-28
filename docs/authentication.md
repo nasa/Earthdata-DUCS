@@ -45,6 +45,7 @@ Just run the snippet. If no other credentials are found, you'll be asked for you
 
 ```python
 import earthaccess
+
 earthaccess.login(persist=True)
 ```
 
