@@ -16,10 +16,10 @@ Values in `{{ }}` are filled in for each collection. The rest of the block, comm
 # ---------------------------------------------------------------------------
 # Search for granules by time and location
 # ---------------------------------------------------------------------------
-# Collection: {{ entry_title }}, version {{ version }}, or 
+# Collection: {{ entry_title }}, version {{ version }}, or
 # DOI: https://doi.org/{{ doi }}
 #
-# earthaccess.search_data() returns granules in one collection that 
+# earthaccess.search_data() returns granules in one collection that
 # match all of the filters below.
 granules = earthaccess.search_data(
     # dataset doi
@@ -54,11 +54,11 @@ This is the template filled in for [Harmonized Landsat Sentinel-2 surface reflec
 # ---------------------------------------------------------------------------
 # Search for granules by time and location
 # ---------------------------------------------------------------------------
-# Collection: HLS Landsat Operational Land Imager Surface Reflectance and 
+# Collection: HLS Landsat Operational Land Imager Surface Reflectance and
 #             TOA Brightness Daily Global 30m v2.0
 # DOI: https://doi.org/10.5067/HLS/HLSL30.002
 #
-# earthaccess.search_data() returns granules in one collection that 
+# earthaccess.search_data() returns granules in one collection that
 # match all of the filters below.
 granules = earthaccess.search_data(
     # dataset doi
@@ -156,4 +156,4 @@ hits = (
 )
 ```
 
-If **0 hits**,  widen the time range first, then the spatial bounding box. If **1 to 20 hits**, accept the query.If **more than 20 hits**, narrow the time range first, then the spatial bounding box. 
+If **0 hits**,  widen the time range first, then the spatial bounding box. If **1 to 20 hits**, accept the query.If **more than 20 hits**, narrow the time range first, then the spatial bounding box.
