@@ -1,8 +1,4 @@
-# Developer-facing checks on pull requests and pushes to main.
-#
-# Scope: this workflow keeps the *pipeline codebase* healthy. It is NOT
-# the DUCS generate/validate pipeline and NOT scheduled re-validation.
-# Those will be separate workflows with different triggers.
+# Secret scan on pull requests and pushes to main.
 #
 # Intentionally secret-free, so it should run fine on pull requests from forks.
 name: CI
@@ -23,55 +19,22 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  checks:
-    name: lint & workflow audit
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # Don't leave the job's token in .git/config for later steps to reach.
-          persist-credentials: false
-
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
-        with:
-          enable-cache: true
-
-      # Hook environments are the slow part, not the checks themselves. Keyed on
-      # the config so a Dependabot rev bump correctly invalidates the cache.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
-          restore-keys: pre-commit-
-
-      # --locked matters here: plain `uv run` would quietly re-lock a uv.lock
-      # that had drifted from pyproject.toml, and CI would pass on a lockfile
-      # nobody committed.
-      - name: Run all hooks
-        env:
-          # The gitleaks hook only ever scans the *staged* diff -- that flag is
-          # baked into its hook definition rather than passed as an argument --
-          # and nothing is staged in CI. The `secrets` job scans instead.
-          SKIP: gitleaks
-        run: uv run --locked --group dev pre-commit run --all-files --show-diff-on-failure
-
   # This job cannot prevent a leak. The repository is public, so a pushed secret
-  # is already public before the job starts, and `pre-commit install` is the only
-  # control that runs early enough to stop one. This is the backstop for whoever
-  # never installed the hooks, or used `git commit --no-verify`.
-  #
-  # It earns its place because it is the only detection that exists: per
-  # .gitleaks.toml, GitHub's own secret scanning cannot see Earthdata Login
-  # credentials. Treat anything it reports as already compromised -- rotate the
-  # credential first, worry about history second.
+  # is already public before the job starts, and the local gitleaks hook in
+  # .pre-commit-config.yaml is the only control that runs early enough to stop
+  # one. This is the backstop for whoever never installed the hooks, or used
+  # `git commit --no-verify`. Treat anything it reports as already compromised.
   secrets:
     name: secret scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # Actions are pinned to a commit SHA, not a tag: a tag can be moved to point
+      # at different code. Dependabot keeps the SHA and the trailing version
+      # comment current.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # Don't leave the job's token in .git/config for later steps to reach.
           persist-credentials: false
 
       # `dir` scans the checked-out tree rather than git history, which is what
