@@ -1,17 +1,13 @@
 # Automated dependency updates (DUCS-12).
 #
-# Updates are grouped so each ecosystem opens one PR per week rather than one per
-# dependency. This is the same reasoning as batching pipeline commits: GitHub
-# applies a 500/hour secondary limit to content creation, and a repo that opens
-# dozens of PRs a week trains everyone to ignore them.
+# Each ecosystem opens at most one grouped PR per week.
 #
-# Times use an odd minute deliberately. Everybody's default is :00, which piles
-# every scheduled job in the world onto the same instant.
+# Times use an odd minute deliberately. Everybody's default is :00, which
+# piles every scheduled job in the world onto the same instant.
 #
 # `cooldown` holds back releases younger than a week. When a package is
 # compromised, the malicious version is typically pulled within days — a cooldown
-# means the repo never adopts it. This matters more than usual here: DUCS ships
-# code that users are told to trust and run.
+# means the repo never adopts it.
 version: 2
 updates:
   # Keeps the SHA pins in .github/workflows/ current. Dependabot rewrites both
@@ -33,9 +29,7 @@ updates:
       github-actions:
         patterns: ["*"]
 
-  # Hook revisions in .pre-commit-config.yaml. This is why the repo needs no
-  # scheduled `pre-commit autoupdate` job and no third-party app (pre-commit.ci:
-  # un-disableable weekly autoupdate with no cooldown would race that entry).
+  # Hook revisions in .pre-commit-config.yaml.
   - package-ecosystem: pre-commit
     directory: /
     schedule:
@@ -50,21 +44,4 @@ updates:
       prefix: "chore(deps)"
     groups:
       pre-commit:
-        patterns: ["*"]
-
-  # Python tooling declared in pyproject.toml / uv.lock.
-  - package-ecosystem: uv
-    directory: /
-    schedule:
-      interval: weekly
-      day: tuesday
-      time: "06:51"
-      timezone: Etc/UTC
-    cooldown:
-      default-days: 7
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "chore(deps)"
-    groups:
-      python:
         patterns: ["*"]

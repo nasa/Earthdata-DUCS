@@ -5,9 +5,18 @@ code examples for NASA Earthdata datasets, generated with AI, **verified by
 actually running them against real data**.
 
 > [!NOTE]
-> **Status: early planning.** The pipeline described
-> below is **not yet implemented**, and the documents here are drafts intended to
-> seed team discussion rather than settled decisions.
+> **Status: early planning.** The pipeline described below is **not yet
+> implemented**. This repository will host the published, verified snippets and
+> their index; the pipeline itself is developed in a separate repository.
+
+## What's here
+
+| Path | Contents |
+|---|---|
+| [`examples/`](examples/) | Example draft snippets that predate the pipeline, for various data formats and structures. They show the intended shape of a DUCS snippet. They are not pipeline output. |
+
+Verified snippets and a machine-readable index will be added here as the
+pipeline starts publishing.
 
 ## The problem
 

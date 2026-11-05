@@ -1,67 +1,25 @@
-# Run `pre-commit install` once to enable. Revisions below are kept current by
-# Dependabot's `pre-commit` ecosystem (see .github/dependabot.yml), so manual
-# `pre-commit autoupdate` runs should rarely be necessary.
+# Credential checks only. Enable once per clone:
 #
-# CI runs this same file via `pre-commit run --all-files`, so local hooks and CI
-# stay aligned. The one exception is gitleaks, which CI runs directly for the
-# reason noted at that hook. See .github/workflows/ci.yml.
+#   uvx pre-commit install      (or: pipx run pre-commit install)
+#
+# This is the control that actually prevents a leak. The repository is public,
+# so once a commit is pushed the secret is public; the `secret scan` job in
+# .github/workflows/ci.yml runs after that and can only report it.
+#
+# Revisions below are kept current by Dependabot's `pre-commit` ecosystem (see
+# .github/dependabot.yml).
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
-      - id: trailing-whitespace
-        args: [--markdown-linebreak-ext=md]
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-toml
-      - id: check-json
-      - id: check-merge-conflict
-      - id: check-case-conflict
-      - id: mixed-line-ending
-      - id: check-added-large-files
-        args: [--maxkb=2048]
       # Catches PEM-format keys only. Broader credential detection is gitleaks,
       # below; filename-shaped credentials are the local hook at the bottom.
       - id: detect-private-key
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.8
-    hooks:
-      - id: ruff-check
-        args: [--fix]
-      - id: ruff-format
-
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.3
-    hooks:
-      - id: codespell
-        args: ["--skip=*.gif,*.pdf,*.ipynb,*.html,uv.lock"]
-
-  # --- GitHub Actions: correctness, then security -------------------------- #
-
-  # Workflow syntax, expression validity, and shellcheck over `run:` blocks.
-  # Note it does NOT verify that paths referenced by a workflow actually exist.
-  - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.12
-    hooks:
-      - id: actionlint
-
-  # Security audit.
-  - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.30.1
-    hooks:
-      - id: zizmor
-
-  # --- Credentials --------------------------------------------------------- #
-
-  # Content-shaped secrets in the staged diff. This hook is staged-only: its
-  # `--staged` flag is baked into the hook definition and cannot be overridden
-  # from here, so CI skips it and scans the checked-out tree instead.
-  #
-  # This is the control that actually prevents a leak. The repository is public,
-  # so once a commit is pushed the secret is public and CI can only report it.
-  # Worth bumping ci.yml's pinned image to match when Dependabot moves this rev,
-  # though a release of lag costs nothing but a slightly older ruleset.
+  # Content-shaped secrets in the staged diff, using the Earthdata Login rules
+  # in .gitleaks.toml. Worth bumping ci.yml's pinned image to match when
+  # Dependabot moves this rev, though a release of lag costs nothing but a
+  # slightly older ruleset.
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
     hooks:
